@@ -9,7 +9,6 @@ from scipy.spatial.distance import jensenshannon
 from scipy.linalg import sqrtm
 
 import scanpy as sc
-from .dataprep import balanceControlAndPattern, match_unique_control_using_faiss
 from tqdm import tqdm
 import seaborn as sns
 

@@ -80,7 +80,7 @@ If you use SubCellSpace in your research, please cite:
 
 ```bibtex
 @article{wouters2026subcellspace,
-  title   = {SubCellSpace: A latent space of subcellular mRNA localization patterns},
+  title   = {SubCellSpace: Automated characterization of subcellular mRNA localization patterns in spatial transcriptomics},
   author  = {Wouters et al.},
   journal = {TBD},
   year    = {2026}

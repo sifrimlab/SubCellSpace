@@ -11,6 +11,7 @@
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Python](https://img.shields.io/badge/python-3.8%2B-blue)](https://www.python.org/)
 [![conda](https://img.shields.io/badge/conda-environment-green)](./yamls/)
+[![bioRxiv](https://img.shields.io/badge/bioRxiv-2026.04.28.720613-b31b1b)](https://www.biorxiv.org/content/10.64898/2026.04.28.720613v1)
 
 </div>
 
@@ -18,7 +19,7 @@
 
 ## Overview
 
-**SubCellSpace** encodes subcellular mRNA localization patterns into a compact, interpretable latent space. This repository contains all code needed to reproduce the results and figures of Wouters et al. 2026.
+**SubCellSpace** encodes subcellular mRNA localization patterns into a compact, interpretable latent space. This repository contains all code needed to reproduce the results and figures of [Wouters et al. 2026](https://www.biorxiv.org/content/10.64898/2026.04.28.720613v1).
 
 <img src="./assets/classification_workflow" alt="SubCellSpace pipeline workflow" width="100%"/>
 
@@ -80,10 +81,12 @@ If you use SubCellSpace in your research, please cite:
 
 ```bibtex
 @article{wouters2026subcellspace,
-  title   = {SubCellSpace: Automated characterization of subcellular mRNA localization patterns in spatial transcriptomics},
+  title   = {SubCellSpace: A latent space of subcellular mRNA localization patterns},
   author  = {Wouters et al.},
-  journal = {TBD},
-  year    = {2026}
+  journal = {bioRxiv},
+  year    = {2026},
+  doi     = {10.64898/2026.04.28.720613},
+  url     = {https://www.biorxiv.org/content/10.64898/2026.04.28.720613v1}
 }
 ```
 

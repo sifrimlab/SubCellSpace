@@ -30,6 +30,7 @@ import torch
 import zarr
 import imagesize
 from skimage import io
+from tifffile import TiffFile, imwrite
 from skimage.exposure import match_histograms
 from skimage.segmentation import expand_labels
 from joblib import Parallel, delayed
@@ -123,17 +124,72 @@ class BuildTileGrid(PipelineStep):
         ctx.grid = grid  # hand it to downstream steps without a reload
 
 
+# Channel order of the Xenium multi-modal morphology focus image, in the order the
+# instrument writes them.
+_MORPHOLOGY_CHANNELS = ("dapi", "cellbound", "intra-rna", "intra-prot")
+
+
 def _ensure_morphology_channels(ctx):
-    """Split the 4-channel morphology OME-TIFF into single-channel tiffs."""
+    """Split the multi-channel morphology OME-TIFF into single-channel tiffs.
+
+    Written channel-by-channel on purpose. The file is an OME pyramid whose axes are
+    CYX (channels FIRST) -- indexing it as ``img[:, :, n]`` slices columns, not
+    channels -- and a full read is ~25 GB for a typical sample, so it is never
+    materialised in one go.
+    """
     cfg, p, log = ctx.config, ctx.paths, ctx.log
     if cfg.dapi_path.is_file():
         return
-    log.info("Splitting morphology OME-TIFF into single channels")
-    img = io.imread(cfg.morphology_focus_ome)
-    io.imsave(p.img_dir / "morphology_focus_0000_dapi.tif", img[:, :, 0])
-    io.imsave(p.img_dir / "morphology_focus_0000_cellbound.tif", img[:, :, 1])
-    io.imsave(p.img_dir / "morphology_focus_0000_intra-rna.tif", img[:, :, 2])
-    io.imsave(p.img_dir / "morphology_focus_0000_intra-prot.tif", img[:, :, 3])
+
+    with TiffFile(cfg.morphology_focus_ome) as tf:
+        series = tf.series[0]
+        axes, shape = series.axes, series.shape
+
+        if "C" not in axes:
+            # Older XOA (< 2.0) ships a single-channel DAPI morphology image, so there
+            # is no boundary stain to derive cellbound2_path from. Say so here rather
+            # than failing later on a path that was never going to exist.
+            raise ValueError(
+                f"{cfg.morphology_focus_ome} has axes {axes} (shape {shape}) -- no "
+                "channel axis, so it looks like a single-channel (DAPI-only) morphology "
+                "image from an older Xenium Onboard Analysis version.\n"
+                "This pipeline segments on DAPI plus a second stain, so set dapi_path and "
+                "cellbound2_path in the config explicitly to the images you have."
+            )
+
+        c_axis = axes.index("C")
+        n_channels = shape[c_axis]
+        if n_channels < len(_MORPHOLOGY_CHANNELS):
+            raise ValueError(
+                f"{cfg.morphology_focus_ome} has {n_channels} channels (axes {axes}), "
+                f"expected {len(_MORPHOLOGY_CHANNELS)} "
+                f"({', '.join(_MORPHOLOGY_CHANNELS)}). Set dapi_path and cellbound2_path "
+                "explicitly if your morphology image is laid out differently."
+            )
+
+        log.info(
+            "Splitting morphology OME-TIFF (axes %s, shape %s) into single channels",
+            axes, shape,
+        )
+        # One page per channel is the normal layout here, and reading a single page
+        # keeps peak memory at one channel. Otherwise fall back to a lazy zarr view
+        # and slice the channel axis out of it -- still one channel at a time.
+        one_page_per_channel = len(series.pages) == n_channels
+        lazy = None if one_page_per_channel else zarr.open(series.aszarr(), mode="r")
+
+        for i, name in enumerate(_MORPHOLOGY_CHANNELS):
+            out = p.img_dir / f"morphology_focus_0000_{name}.tif"
+            if out.is_file():
+                continue
+            if one_page_per_channel:
+                channel = series.pages[i].asarray()
+            else:
+                index = [slice(None)] * len(shape)
+                index[c_axis] = i
+                channel = lazy[tuple(index)]
+            imwrite(out, channel)
+            log.info("  wrote %s (%s)", out.name, channel.shape)
+            del channel
 
 
 def _export_xenium_masks(ctx):
@@ -304,13 +360,15 @@ class SegmentImages(PipelineStep):
         # unguarded imread several tiles in. Datasets vary -- MERSCOPE runs may ship
         # Cellbound2/3, PolyT, or neither -- so point cellbound2_path at whatever
         # second stain you have.
-        if not cfg.use_xenium_segmentation and not p.cellbound2_tile(1).is_file():
+        # Unconditional: _segment_tile reads the cellbound tile before it branches on
+        # the segmentation mode, so an instrument-mask run needs it just as much.
+        if not p.cellbound2_tile(1).is_file():
             raise FileNotFoundError(
                 f"No cellbound tiles found (expected {p.cellbound2_tile(1)}).\n"
                 f"cellbound2_path is {cfg.cellbound2_path}, which does not exist.\n"
-                "Cellpose segmentation needs a second stain alongside DAPI; set "
-                "cellbound2_path in the config to the membrane/PolyT image for this "
-                "sample, or set use_xenium_segmentation: true to reuse instrument masks."
+                "Every segmentation mode reads this stain (cellpose segments on it, and "
+                "the instrument-mask path still crops it), so set cellbound2_path in the "
+                "config to the membrane / intra-RNA / PolyT image for this sample."
             )
 
         p.labeled_dapi_tiled_dir.mkdir(exist_ok=True)

@@ -42,6 +42,10 @@ python -m raw_spatial_data_processing.run raw_spatial_data_processing/configs/mi
 Only `basedir` and `model_path` are required; every input file location is derived from
 `basedir` unless you override it. Use `configs/example_merfish.yaml` for MERFISH.
 
+For a walkthrough that runs these steps one at a time and shows what each produces — including
+how to cut a small example tile out of a full sample so a test run takes about a minute — see
+[`tutorial_creating_adata_subcell.ipynb`](../tutorial_creating_adata_subcell.ipynb).
+
 | flag | effect |
 |------|--------|
 | `--status` | print which steps are already done and exit; touches no data |
@@ -112,7 +116,8 @@ uns    measured_df
 ```
 
 Feed that to the [example notebook](../example_usage_of_SubCellSpace_on_your_data.ipynb) to
-analyse your own data.
+analyse your own data, or see the
+[tutorial](../tutorial_creating_adata_subcell.ipynb) for a guided tour of this schema.
 
 The intermediates are compact by design: single cells and their embeddings are stored as one
 compressed `.npz` per tile rather than as millions of small files (the previous version wrote

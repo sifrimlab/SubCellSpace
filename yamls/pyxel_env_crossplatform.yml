@@ -1,0 +1,77 @@
+# Cross-platform equivalent of pyxel_env.yaml (Linux, macOS incl. Apple Silicon, Windows).
+#
+# pyxel_env.yaml was produced by `conda env export` on a linux-64 machine and cannot be
+# solved anywhere else, because:
+#   * all 19 conda packages carry linux-64 build strings (e.g. python=3.9.19=h955ad1f_1),
+#     which do not exist in the osx-64 / osx-arm64 / win-64 subdirs;
+#   * six of them are Linux-only by nature (_libgcc_mutex, _openmp_mutex, ld_impl_linux-64,
+#     libgcc-ng, libgomp, libstdcxx-ng);
+#   * the pip section pins 18 nvidia-*-cu11/cu12 wheels and triton, which are published
+#     for linux only (triton has no sdist either, so pip fails hard rather than building);
+#   * it pins tensorflow/keras, which come from pyxelperfect's optional [tensor] extra and
+#     are never imported by this pipeline.
+#
+# This file instead pins only direct dependencies at the tested versions and lets pip
+# resolve platform-appropriate builds. On Linux, `torch` still pulls its CUDA runtime
+# wheels automatically, so GPU support is unchanged; on macOS/Windows pip selects the
+# CPU/MPS build. Set gpu=False in the segmentation calls if you have no CUDA device.
+#
+# Usage:
+#   conda env create -f pyxel_env_crossplatform.yml
+#   conda activate pyxel_env
+name: pyxel_env
+channels:
+  - conda-forge
+dependencies:
+  - python=3.9
+  - pip
+  - pip:
+      # --- core scientific stack ---
+      - numpy==1.26.4
+      - scipy==1.13.1
+      - pandas==2.2.2
+      - scikit-image==0.24.0
+      - scikit-learn==1.1.1
+      - matplotlib==3.9.2   # 3.9.1 (the frozen version) shipped no Windows wheel
+      - h5py==3.11.0
+      - numba==0.60.0
+      - llvmlite==0.43.0
+
+      # --- image / array IO ---
+      - tifffile==2024.7.21
+      - imagecodecs==2024.6.1
+      - roifile==2024.5.24
+      - pillow==10.4.0
+      - opencv-python-headless==4.10.0.84
+      - zarr==2.18.2
+      - numcodecs==0.12.1
+      - pyarrow==17.0.0          # required by .to_parquet on detected transcripts
+      - imagesize==1.4.1
+      - aicspylibczi==3.2.0
+      - nd2reader==3.3.0
+      - SimpleITK==2.3.1
+
+      # --- spatial / single-cell ---
+      - anndata==0.10.8
+      - scanpy==1.10.3
+      - awkward==2.6.6
+      - shapely==2.0.5
+      - natsort==8.4.0
+
+      # --- segmentation ---
+      - torch==1.13.1
+      - torchvision==0.14.1
+      - cellpose==3.0.10
+      - fastremap==1.15.0
+
+      # --- utilities ---
+      - tqdm==4.66.4
+      - joblib==1.4.2
+      - tabulate==0.9.0
+
+      # --- this project's image helpers (installed WITHOUT the [tensor] extra) ---
+      - pyxelperfect==0.1.10
+
+      # --- notebooks ---
+      - jupyterlab==4.2.4
+      - notebook==7.2.1

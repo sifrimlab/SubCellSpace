@@ -1,0 +1,19 @@
+# Keep the build context small: .git is ~3 GB and classifiers/ ~2.1 GB.
+.git
+.gitattributes
+.gitignore
+
+# Pickled random forests, only needed by the paper-figure notebooks (mount if required).
+classifiers/
+
+# Local caches and checkpoints
+__pycache__/
+**/__pycache__/
+*.pyc
+.ipynb_checkpoints/
+**/.ipynb_checkpoints/
+
+# Figure outputs and intermediate data, if any were produced locally
+make_paper_figures/figures/
+*.h5ad
+*.zarr

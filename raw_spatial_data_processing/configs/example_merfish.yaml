@@ -1,0 +1,85 @@
+# Example experiment config for the MERFISH -> AnnData pipeline.
+#
+# Copy this file per experiment (e.g. configs/my_sample.yaml), edit the values,
+# then run from the repository root:
+#
+#     python -m raw_spatial_data_processing.run \
+#         raw_spatial_data_processing/configs/my_sample.yaml
+#
+# Only `basedir` and `model_path` are required. Everything else has the same
+# defaults the old template shipped with, and the input file locations are
+# derived from `basedir` unless you override them below.
+
+# --- required -------------------------------------------------------------
+platform: merfish
+basedir: /path/to/base_dir
+model_path: ./SubCellSpace          # the trained model shipped in this repo
+
+# --- segmentation ---------------------------------------------------------
+use_xenium_segmentation: false  # Xenium-only; MERFISH always uses cellpose
+keep_unmatched_nuclei: false
+expand_segmentation: 0          # px to expand labels by (0 = off)
+seg_diameter: 100               # cellpose diameter
+
+# --- storage -------------------------------------------------------------
+# False (default): single-cell crops are kept only as compact per-tile archives
+#   (tileN_cells.npz + tileN_transcripts.parquet) that later steps read.
+# True: ALSO write the old per-cell tif/parquet layout (single_*_masks/,
+#   detected_transcripts/, actual_images/) for visual diagnostics.
+write_single_cell_images: false
+
+# False (default): delete the bulky tiled images (dapi/cellbound tiles, and in
+#   Xenium mode the label-mask tiles + exported full masks) once the pipeline
+#   completes. They are regenerated from source (cells.zarr / the full tifs) if
+#   an early step is re-run.
+# True: keep them for diagnostics / visualization.
+keep_tiled_images: false
+
+# --- tiling ---------------------------------------------------------------
+tile_size: [10000, 10000]       # [rows, cols]
+
+# --- compute --------------------------------------------------------------
+gpu_id: 0
+# Log a per-step storage-added + (avg/peak) memory summary at the end (needs psutil).
+profile_resources: false
+n_jobs_count_matrix: 48
+n_jobs_single_cells: 12
+n_jobs_count_spots: 48
+
+# --- coordinate parsing / autoencoder input ------------------------------
+coord_target_shape: [100, 100]
+coord_sigma: 1.5
+
+# A gene is embedded for a cell only when its spot count is strictly between
+# these bounds (spot_count_lower < count < spot_count_upper).
+spot_count_lower: 10
+spot_count_upper: 101
+
+# Randomised control: also embed each gene after scattering its spots to random
+# pixels inside the cell mask -> adata.layers["random_subcell_embedding"].
+# Roughly doubles embedding time. Set random_seed (an int) for reproducibility.
+compute_random_control: true
+# random_seed: 0
+# Images embedded per GPU forward pass (real + randomised). Raise to saturate a
+# roomy GPU; lower on CUDA out-of-memory.
+embed_batch_size: 256
+
+# --- optional extra channels ----------------------------------------------
+# Each entry is extracted per cell; set count_spots: true to also count blobs.
+extra_channels: []
+# extra_channels:
+#   - path: /path/to/base_dir/images/morphology_focus_0000_intra-prot.tif
+#     count_spots: false
+#   - path: /path/to/base_dir/images/morphology_focus_0000_cellbound.tif
+#     count_spots: false
+
+# --- input file overrides (optional; derived from basedir by default) -----
+# MERSCOPE output layout is assumed:
+# detected_transcripts_file: /path/to/base_dir/detected_transcripts.csv
+# transform_path:            /path/to/base_dir/images/micron_to_mosaic_pixel_transform.csv
+# dapi_path:                 /path/to/base_dir/images/mosaic_DAPI_z3.tif
+# cellbound2_path:           /path/to/base_dir/images/mosaic_Cellbound2_z3.tif
+# cellbound3_path:           /path/to/base_dir/images/mosaic_Cellbound3_z3.tif
+#
+# cellbound3 is optional: if the file is absent, segmentation runs on
+# DAPI + Cellbound2 alone and logs that it did so.

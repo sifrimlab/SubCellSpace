@@ -11,12 +11,12 @@ from tqdm import tqdm
 from glob import glob
 
 # @measureTime
-def create_gene_matrix(labeled_image, decoded_df, rowname = "row", colname="col", genename="gene", measured_df = None, key_to_match_in_labeled_image="image_label"):
+def createGeneMatrix(labeled_image, decoded_df, rowname = "row", colname="col", genename="gene", measured_df = None, key_to_match_in_labeled_image="image_label"):
     # We add option to give measured df such that this is compatible with splitting segmentation into single cells of the SEP workflow
     if measured_df is None:
         measured_df = measureLabeledImage(labeled_image)
 
-    def assign_genes_to_spots(labeled_image, decoded_df, cell_properties):
+    def assignGenesToSpots(labeled_image, decoded_df, cell_properties):
         gene_dict = {} # keys = label integers, values = dict{gene: count}
 
         ### Archived
@@ -60,7 +60,7 @@ def create_gene_matrix(labeled_image, decoded_df, rowname = "row", colname="col"
         return gene_dict
 
 
-    gene_dict = assign_genes_to_spots(labeled_image, decoded_df, measured_df)
+    gene_dict = assignGenesToSpots(labeled_image, decoded_df, measured_df)
     try:
         gene_dict.pop(0)
     except KeyError:
@@ -85,16 +85,38 @@ def create_gene_matrix(labeled_image, decoded_df, rowname = "row", colname="col"
     return count_matrix, decoded_df
 
 
-def parse_cell_label(cell_label: str):
+def parseCellLabel(cell_label: str):
     str_split = cell_label.split("_")
     x = int(str_split[0][1:])
     y = int(str_split[1][1:])
     label = int(str_split[2])
     return (x,y,label)
 
-def concat_count_matrices(glob_pattern):
+# Purely for QC purposes
+def plotAreaDistribution(image):
+    measured_df = measureLabeledImage(image)
+    n, bins, patches = plt.hist(x=measured_df["Area"], bins=np.arange(1000, 5000, 500)-250, color='navy',
+                            alpha=0.7, rwidth=0.85)
+
+    plt.grid(axis='y', alpha=0.75)
+    plt.xlabel('Area (in pixels)')
+    plt.xticks(range(1000,5000,500 ))
+    plt.ylabel('Frequency')
+    plt.title('Distribution of area of annotated NMJ objects')
+    maxfreq = n.max()
+    plt.show()
+
+def concatCountMatrices(glob_pattern):
     dfs = [pd.read_csv(file, index_col = 0) for file in glob(glob_pattern)]
     concat_df = pd.concat(dfs)
     concat_df = concat_df.fillna(0)
     return concat_df
+
+if __name__ == '__main__':
+    from skimage.transform import resize
+    # labeled_image, _  = resize(labeled_image, (101989, 53986), order=0)
+    # decoded_df = pd.read_csv("/mnt/data/david/tejpar_segmentation/transcripts_parsed.csv")
+    # count_matrix = createGeneMatrix(labeled_image, decoded_df)
+    # count_matrix.to_csv("/mnt/data/david/tejpar_segmentation/output/model_outputs/2024_03_13_11_36_43/test_output/count_matrix.csv")
+
 

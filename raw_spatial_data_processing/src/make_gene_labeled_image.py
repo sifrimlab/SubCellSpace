@@ -3,7 +3,7 @@ import pandas as pd
 import numpy as np
 from tqdm import tqdm
 
-def create_gene_expression_image(detected_transcripts_df, img_shape):
+def createGeneExpressionImage(detected_transcripts_df, img_shape):
     """
         Game plan:
         - Create image representing genes with label
@@ -20,7 +20,7 @@ def create_gene_expression_image(detected_transcripts_df, img_shape):
 
     return labeled_image, gene_map
 
-def create_gene_map(detected_transcripts_df):
+def createGeneMap(detected_transcripts_df):
     gene_map ={k: v for v, k in enumerate(sorted(set(detected_transcripts_df["gene"])), 1)}
 
     return gene_map

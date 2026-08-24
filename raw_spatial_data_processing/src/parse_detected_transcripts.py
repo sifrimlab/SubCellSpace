@@ -9,7 +9,7 @@ from tifffile import TiffFile
 import PIL
 import json
 
-def transform_detected_transcripts_to_pixels(df, matrix, offset):
+def transformDetectedTranscriptsToPixels(df, matrix, offset):
     new_global_x = []
     new_global_y = []
     for row in tqdm(df.itertuples(), total=len(df), unit="pts"):
@@ -22,7 +22,7 @@ def transform_detected_transcripts_to_pixels(df, matrix, offset):
     df["row"] = new_global_y
     return df
 
-def faster_transform_detected_transcripts_to_pixels(df, matrix, offset):
+def fasterTransformDetectedTranscriptsToPixels(df, matrix, offset):
     points = np.array([df["global_y"], df["global_x"]])
 
     new_points = np.dot(matrix, points).T + np.flip(offset)
@@ -37,7 +37,7 @@ def faster_transform_detected_transcripts_to_pixels(df, matrix, offset):
     return df
 
 
-def parse_merfish_transform_matrix(transform_path):
+def parseMerfishTransformMatrix(transform_path):
     transform = pd.read_csv(transform_path, sep=" ", header=None).values
     matrix = transform[:2, :2]
     offset = transform[:2, 2]
@@ -48,11 +48,11 @@ def parse_merfish_transform_matrix(transform_path):
 
 def parse_detected_transcripts(df_path, transform_path):
     detected_transcripts = pd.read_csv(df_path, index_col=0)
-    matrix, offset =parse_merfish_transform_matrix(transform_path)
-    detected_transcripts  = faster_transform_detected_transcripts_to_pixels(detected_transcripts, matrix, offset) 
+    matrix, offset =parseMerfishTransformMatrix(transform_path)
+    detected_transcripts  = fasterTransformDetectedTranscriptsToPixels(detected_transcripts, matrix, offset) 
     return detected_transcripts
 
-def extract_physical_size_from_ome_tiff(ome_tif_path):
+def extractPhysicalSizeFromOmeTiff(ome_tif_path):
     with TiffFile(ome_tif_path) as tif:
         for page in tif.series[0].pages:
             pixels_element = ElementTree.fromstring(page.description).find('.//{*}Pixels')
@@ -60,7 +60,7 @@ def extract_physical_size_from_ome_tiff(ome_tif_path):
             physical_size_y = float(pixels_element.get('PhysicalSizeY'))
     return physical_size_x, physical_size_y 
 
-def extract_physical_size_experiment_file(experiment_file):
+def extractPhysicalSizeExperimentFile(experiment_file):
     with open(experiment_file, 'r') as f:
         exp = json.load(f)
         pixel_size =float( exp["pixel_size"])
@@ -73,9 +73,9 @@ def parse_xenium_detected_transcripts(df_path, experiment_path):
         df_path = Path(df_path)
 
     if str(experiment_path).endswith(".ome.tif"):
-        physical_size_x, physical_size_y = extract_physical_size_from_ome_tiff(experiment_path)
+        physical_size_x, physical_size_y = extractPhysicalSizeFromOmeTiff(experiment_path)
     else:
-        physical_size_x, physical_size_y = extract_physical_size_experiment_file(experiment_path)
+        physical_size_x, physical_size_y = extractPhysicalSizeExperimentFile(experiment_path)
 
     if df_path.stem.endswith("csv"):
         df = pd.read_csv(df_path,index_col=0)
@@ -85,13 +85,18 @@ def parse_xenium_detected_transcripts(df_path, experiment_path):
     df["row"] = df["y_location"].apply(lambda x: x / physical_size_y )
     df = df.rename(columns={"feature_name": "gene"})
     # Remove xenium specific cols that I'll maky my own for anyway
-    df = df.drop(["cell_id", "overlaps_nucleus", "qv", "fov_name", "nucleus_distance", "codeword_index"], axis=1)
+
+    # Older xenium runs did not have this in teh cols
+    if "codeword_index" in df.columns:
+        df = df.drop(["cell_id", "overlaps_nucleus", "qv", "fov_name", "nucleus_distance", "codeword_index"], axis=1)
+    else:
+        df = df.drop(["cell_id", "overlaps_nucleus", "qv", "fov_name", "nucleus_distance"], axis=1)
     return df
 
-def parse_cell_boundaries(parquet_path, transform_path):
+def parseCellBoundaries(parquet_path, transform_path):
     cell_boundaries = pd.read_parquet(parquet_path)
 
-    matrix, offset =parse_merfish_transform_matrix(transform_path)
+    matrix, offset =parseMerfishTransformMatrix(transform_path)
 
     coords_lists = []
     for tmp_row in cell_boundaries.itertuples():
@@ -117,7 +122,7 @@ if __name__ == '__main__':
     pass
     # # Detected transcripts
     # df = pd.read_csv("/mnt/data/MERFISH/moor_data/merfish/ileum/detected_transcripts.csv", index_col=0)
-    # matrix, offset = parse_merfish_transform_matrix("/mnt/data/MERFISH/moor_data/merfish/ileum/images/micron_to_mosaic_pixel_transform.csv")
+    # matrix, offset = parseMerfishTransformMatrix("/mnt/data/MERFISH/moor_data/merfish/ileum/images/micron_to_mosaic_pixel_transform.csv")
     # parsed_df = fasterTransformDetectedTranscriptsToPixels(df, matrix, offset)
     # parsed_df.to_csv("/mnt/data/MERFISH/moor_data/merfish/detected_transcripts2_parsed.csv")
 

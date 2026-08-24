@@ -23,7 +23,7 @@ def get_least_busy_gpu(gpu_ids):
     gpu_info = [(gpu_id, get_gpu_utilization(gpu_id)) for gpu_id in gpu_ids]
     return min(gpu_info, key=lambda x: x[1])[0]
 
-def segment_dual_channel(cellbound, dapi, diameter = None, also_plot = False, gpu = False, device=None, available_gpu_ids = [0,1,2,3]):
+def segmentDualChannel(cellbound, dapi, diameter = None, also_plot = False, gpu = False, device=None, available_gpu_ids = [0,1,2,3]):
     model = models.Cellpose(gpu=gpu, device=device, model_type='cyto2')
     channels = [[2,1]]
     merged =  np.zeros((*cellbound.shape, 2))
@@ -39,7 +39,7 @@ def segment_dual_channel(cellbound, dapi, diameter = None, also_plot = False, gp
         plt.imshow(marked)
     return masks
 
-def segment_dapi(dapi, diameter = None, also_plot = False, gpu=False, device = None, available_gpu_ids=[0,1,2,3]):
+def segmentDapi(dapi, diameter = None, also_plot = False, gpu=False, device = None, available_gpu_ids=[0,1,2,3]):
     model = models.Cellpose(gpu=gpu, device = device, model_type='nuclei')
     channels = [[0,0]]
 
@@ -51,7 +51,7 @@ def segment_dapi(dapi, diameter = None, also_plot = False, gpu=False, device = N
         plt.imshow(marked)
     return masks
 
-def combine_cell_and_dapi_info(cellbound_labeled, dapi_labeled, grid, tile_nr, keep_unmatched_dapis = False):
+def combineCellAndDapiInfo(cellbound_labeled, dapi_labeled, grid, tile_nr, keep_unmatched_dapis = False):
     cellbound_measured = measureLabeledImage(cellbound_labeled)
     dapi_measured = measureLabeledImage(dapi_labeled)
     original_nr_dapis = len(dapi_measured)
@@ -94,10 +94,10 @@ def combine_cell_and_dapi_info(cellbound_labeled, dapi_labeled, grid, tile_nr, k
     dapi_measured["cell_label"] = dapi_measured['cell_label'] + ("_corrID_" + dapi_measured['corresponding_cell'].astype(str))
 
     # Now also add global coordinates of all centers, cause now we're working on a tile basis
-    dapi_measured = add_real_coordinates_to_measured_df(dapi_measured, grid, tile_nr)
+    dapi_measured = addRealCoordinatesToMeasuredDf(dapi_measured, grid, tile_nr)
     return dapi_measured
 
-def concat_measured_dfs(glob_pattern):
+def concatMeasuredDfs(glob_pattern):
     files = glob(glob_pattern)
     tile_nrs = [re.findall('tile(\d+)', file)[0] for file in files]
     dfs = [pd.read_csv(file) for file in files]
@@ -107,7 +107,7 @@ def concat_measured_dfs(glob_pattern):
     # concat_df = concat_df.fillna(0)
     return concat_df
 
-def add_real_coordinates_to_measured_df(measured_df, grid, tile_nr, rowname="center_row", colname = "center_col"):
+def addRealCoordinatesToMeasuredDf(measured_df, grid, tile_nr, rowname="center_row", colname = "center_col"):
     row_slice, col_slice =  grid.tile_boundaries[int(tile_nr)][0], grid.tile_boundaries[int(tile_nr)][1]
     row_start = row_slice.start
     col_start = col_slice.start

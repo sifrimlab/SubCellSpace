@@ -13,6 +13,7 @@ import matplotlib.pyplot as plt
 from skimage.filters import gaussian
 from skimage.draw import disk, rectangle
 from skimage.transform import rotate, resize, warp
+import SimpleITK as sitk
 
 """
 This module assumes 'point': len(tuple) == 2 with row and col being the fir and second element respectively.
@@ -215,7 +216,7 @@ def flip_point(point, shape):
     return new_point
 
 def sitk_transform_point(point, sitk_transform):
-    """sitkTransformPoint.
+    """sitk_transform_point.
     -   sitk.transform.TransformPoint assumes (col, row) under the hood, so we invert them beforehand and invert them back after transform
     Parameters
     ----------
@@ -264,7 +265,7 @@ def calc_kwargs(input_shape, target_shape, rotation_angle, first_resize_step = T
     else:
         return kwargs
 
-def calculateRotateTranslation(original_shape, angle):
+def calculate_rotate_translation(original_shape, angle):
     zeros = np.zeros(original_shape)
     new_zeros, translation = rotate(zeros, angle, resize=True)
     return translation, new_zeros.shape
@@ -286,7 +287,7 @@ def cut_out_coords_after_rotation(coords, target_shape):
     bbox = max(min_row,0), max(min_col,0), max(max_row,0), max(max_col,0)
     new_coords = []
     for coord in coords:
-        new_coord = transformPointsWithBbox(coord, bbox)
+        new_coord = transform_points_with_bbox(coord, bbox)
         new_coords.append(new_coord)
     return new_coords, bbox
 
@@ -363,7 +364,7 @@ def process_with_zooming_out(image_paths, out_dir, target_shape, sigma, number_o
                     if first_resize_step:
                         cell_mask = resize(cell_mask, target_shape)
                     rotated, shape_after_rotation = rotate(cell_mask, rotation_angle, resize=True)
-                    bbox_cut = cutBboxFromImage(bbox, rotated)
+                    bbox_cut = cut_bbox_from_image(bbox, rotated)
                     resized = resize(bbox_cut, target_shape)
                     io.imsave(cell_mask_output_file, resized, check_contrast=False)
 
@@ -397,14 +398,14 @@ def process_with_zooming_out(image_paths, out_dir, target_shape, sigma, number_o
 def match_genes_with_dapis(genes_glob, dapi_dir, dapi_prefix = "icell", dapi_glob_pattern = None):
     corresponding_dapis = []
     for path in tqdm(genes_glob):
-        cell_id = re.findall(f"{dapi_prefix}(\d+)", path)[0]
+        cell_id = re.findall(f"{dapi_prefix}(\d+)", str(path))[0]
         target_dapi_path =glob(str(dapi_dir / f"*_{dapi_prefix}{cell_id}*.tif"))[0]
         corresponding_dapis.append(target_dapi_path)
     return corresponding_dapis
 
 
 
-def matchDapisWithCell(cell_mask_dir, corresponding_dapis, replace_dapi_to_cell={"dapi", "cell-mask"}):
+def match_dapis_with_cell(cell_mask_dir, corresponding_dapis, replace_dapi_to_cell={"dapi": "cell-mask"}):
     corresponding_cell_masks = []
     for dapi_path in corresponding_dapis:
         tmp_adapted_cell_path = Path(dapi_path).name
@@ -418,10 +419,10 @@ def matchDapisWithCell(cell_mask_dir, corresponding_dapis, replace_dapi_to_cell=
 
 if __name__ == '__main__':
     path_to_simulation_dir = Path("/path/to/simulation/dir/")
-    all_imgs_paths = (path_to_simulation_dir / "gene_expression") .glob("*.tif") 
+    all_imgs_paths = list((path_to_simulation_dir / "gene_expression").glob("*.tif"))
     dapi_dir = path_to_simulation_dir / "nuclei_filtered"
     cell_dir = path_to_simulation_dir / "cell_filtered"
-    out_dir = path_to_simulation_dir / "coordinate_parsed_with_coords")
+    out_dir = path_to_simulation_dir / "coordinate_parsed_with_coords"
     out_dir.mkdir(exist_ok = True)
 
     target_shape = (100,100)

@@ -7,6 +7,7 @@ import torch
 import pickle
 import logging
 import imagesize
+import zarr
 import numpy as np
 import pandas as pd
 import anndata as ad
@@ -157,7 +158,7 @@ def get_tile_grid(tmp):
 
         # first we check if the morphology focus has already been parsed, if not we still need to do this:
         if not dapi_path.is_file():
-            logging.info(f"{timenow()}: first open images in tif readable way")
+            logging.info(f"{time_now()}: first open images in tif readable way")
             img_dir = basedir / "images"
             img_dir.mkdir(exist_ok=True)
 
@@ -283,7 +284,7 @@ def do_segment_everything(tile_nr, grid):
         labeled_cellbound = io.imread(labeled_cellbound_out_path)
 
     if not labeled_dapi_out_path.is_file():
-        labeled_dapi = segmentDapi(dapi_tile, diameter=100, gpu=True, device=device)
+        labeled_dapi = segment_dapi(dapi_tile, diameter=100, gpu=True, device=device)
 
         if EXPAND_SEGMENTATION > 0:
             labeled_dapi = expand_labels(labeled_dapi, EXPAND_SEGMENTATION)
@@ -321,7 +322,7 @@ def do_make_count_matrix(tile_nr):
     measured_df =  pd.read_csv(measured_df_dir / f"{dapi_prefix}_{segmented_prefix}_measured_tile{tile_nr}.csv")
     labeled = io.imread(labeled_cellbound_tiled_dir / f"{cellbound2_prefix}_labeled_tile{tile_nr}.tif")
     df = pd.read_parquet(detected_transcripts_tiled_out_dir / f"detected_transcripts_transformed_tile{tile_nr}.parquet")
-    count_matrix_df, adapted_decoded_df = createGeneMatrix(labeled, df, rowname = "local_row", colname="local_col", measured_df = measured_df, key_to_match_in_labeled_image = "corresponding_cell")
+    count_matrix_df, adapted_decoded_df = create_gene_matrix(labeled, df, rowname = "local_row", colname="local_col", measured_df = measured_df, key_to_match_in_labeled_image = "corresponding_cell")
 
     # We add the cell every transcripts was assigned to to later make the subcell expression list
     adapted_decoded_df["cell_label_assigned"] = adapted_decoded_df["cell_label_assigned"] 
@@ -474,7 +475,7 @@ def get_adata(grid):
         for tile_nr in adata.obs["tile_nr"].unique():
             adata.uns["measured_df"][str(tile_nr)] = pd.read_csv(measured_df_dir / f"{dapi_prefix}_{segmented_prefix}_measured_tile{tile_nr}.csv")
 
-        adata = addMeasuredDfsAsObsMetadata(adata)
+        adata = add_measured_dfs_as_obs_metadata(adata)
 
         adata.write_h5ad(out_dir / "adata.h5ad", compression="gzip")
 

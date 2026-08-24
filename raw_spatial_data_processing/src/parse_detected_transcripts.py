@@ -48,8 +48,8 @@ def parse_merfish_transform_matrix(transform_path):
 
 def parse_detected_transcripts(df_path, transform_path):
     detected_transcripts = pd.read_csv(df_path, index_col=0)
-    matrix, offset =parseMerfishTransformMatrix(transform_path)
-    detected_transcripts  = fasterTransformDetectedTranscriptsToPixels(detected_transcripts, matrix, offset) 
+    matrix, offset =parse_merfish_transform_matrix(transform_path)
+    detected_transcripts  = faster_transform_detected_transcripts_to_pixels(detected_transcripts, matrix, offset) 
     return detected_transcripts
 
 def extract_physical_size_from_ome_tiff(ome_tif_path):
@@ -73,9 +73,9 @@ def parse_xenium_detected_transcripts(df_path, experiment_path):
         df_path = Path(df_path)
 
     if str(experiment_path).endswith(".ome.tif"):
-        physical_size_x, physical_size_y = extractPhysicalSizeFromOmeTiff(experiment_path)
+        physical_size_x, physical_size_y = extract_physical_size_from_ome_tiff(experiment_path)
     else:
-        physical_size_x, physical_size_y = extractPhysicalSizeExperimentFile(experiment_path)
+        physical_size_x, physical_size_y = extract_physical_size_experiment_file(experiment_path)
 
     if df_path.stem.endswith("csv"):
         df = pd.read_csv(df_path,index_col=0)
@@ -91,7 +91,7 @@ def parse_xenium_detected_transcripts(df_path, experiment_path):
 def parse_cell_boundaries(parquet_path, transform_path):
     cell_boundaries = pd.read_parquet(parquet_path)
 
-    matrix, offset =parseMerfishTransformMatrix(transform_path)
+    matrix, offset =parse_merfish_transform_matrix(transform_path)
 
     coords_lists = []
     for tmp_row in cell_boundaries.itertuples():
@@ -117,7 +117,7 @@ if __name__ == '__main__':
     pass
     # # Detected transcripts
     # df = pd.read_csv("/mnt/data/MERFISH/moor_data/merfish/ileum/detected_transcripts.csv", index_col=0)
-    # matrix, offset = parseMerfishTransformMatrix("/mnt/data/MERFISH/moor_data/merfish/ileum/images/micron_to_mosaic_pixel_transform.csv")
+    # matrix, offset = parse_merfish_transform_matrix("/mnt/data/MERFISH/moor_data/merfish/ileum/images/micron_to_mosaic_pixel_transform.csv")
     # parsed_df = fasterTransformDetectedTranscriptsToPixels(df, matrix, offset)
     # parsed_df.to_csv("/mnt/data/MERFISH/moor_data/merfish/detected_transcripts2_parsed.csv")
 

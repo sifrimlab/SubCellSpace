@@ -60,7 +60,7 @@ def create_gene_matrix(labeled_image, decoded_df, rowname = "row", colname="col"
         return gene_dict
 
 
-    gene_dict = assignGenesToSpots(labeled_image, decoded_df, measured_df)
+    gene_dict = assign_genes_to_spots(labeled_image, decoded_df, measured_df)
     try:
         gene_dict.pop(0)
     except KeyError:

@@ -21,7 +21,7 @@
 
 **SubCellSpace** encodes subcellular mRNA localization patterns into a compact, interpretable latent space. This repository contains all code needed to reproduce the results and figures of [Wouters et al. 2026](https://www.biorxiv.org/content/10.64898/2026.04.28.720613v1).
 
-<img src="./assets/classification_workflow" alt="SubCellSpace pipeline workflow" width="100%"/>
+<img src="./assets/classification_workflow.png" alt="SubCellSpace pipeline workflow" width="100%"/>
 
 ---
 
@@ -41,25 +41,94 @@ Each module ships with its own dedicated conda environment (see [`yamls/`](./yam
 
 ### Option 1 — Conda (recommended)
 
-Create and activate an environment for the module you want to run. For example, to reproduce the paper figures:
+Pick the environment for the task you want to run. The two environments most people need
+have **cross-platform files that work on Linux, macOS (Intel and Apple Silicon) and Windows**:
+
+| Task | Environment file | Env name |
+|------|------------------|----------|
+| Reproduce the manuscript analyses and figures | [`yamls/analysis_figures_crossplatform.yml`](./yamls/analysis_figures_crossplatform.yml) | `subcellspace_env` |
+| Process your own Xenium/MERFISH data | [`yamls/pyxel_env_crossplatform.yml`](./yamls/pyxel_env_crossplatform.yml) | `pyxel_env` |
 
 ```bash
-conda env create -n subcellspace -f ./yamls/analysis_figures.yml
-conda activate subcellspace
+# to reproduce the paper figures
+conda env create -f ./yamls/analysis_figures_crossplatform.yml
+conda activate subcellspace_env
+
+# to process your own data
+conda env create -f ./yamls/pyxel_env_crossplatform.yml
+conda activate pyxel_env
 ```
 
 Each subfolder contains a dedicated `README` with step-by-step instructions.
 
+> **Why there are two versions of each environment file.**
+> The original `analysis_figures.yml`, `pyxel_env.yaml`, `train_cvae.yml` and
+> `make_simulations.yml` were produced with `conda env export` on a Linux + CUDA machine.
+> Essentially every conda package in them is pinned to a linux-64 build string (e.g.
+> `python=3.9.19=h955ad1f_1`), several are Linux-only (`libgcc-ng`, `libgomp`,
+> `libstdcxx-ng`, `ld_impl_linux-64`, …), and the pip sections pin CUDA wheels — including
+> `triton`, which is published for Linux only and has no source distribution. They therefore
+> **cannot be solved on macOS or Windows**, and are kept only as an exact record of the
+> environments the paper was produced in.
+>
+> The `*_crossplatform.yml` files pin the same tested package versions but without build
+> strings and without the platform-specific CUDA extras, so pip selects an appropriate build
+> per OS. On Linux they still install the CUDA-enabled `torch`; on macOS/Windows they install
+> the CPU build, in which case pass `gpu=False` to the segmentation steps in
+> `raw_spatial_data_processing`. Both files were verified by resolving their full dependency
+> tree against linux-x86_64, macOS-arm64, macOS-x86_64 and win-amd64.
+>
+> `analysis_figures_crossplatform.yml` keeps every package version from the original except
+> three, each documented in the file header: Python moves 3.8 → 3.9 (3.8 is end-of-life),
+> `torch`/`torchvision` come from PyPI at the same 1.13.1/0.14.1 versions, and `faiss-cpu`
+> moves 1.7.0 → 1.7.4 because 1.7.0 was never released on PyPI.
+>
+> `train_cvae.yml` and `make_simulations.yml` have not been converted. Retraining the model
+> and regenerating the simulations both assume a CUDA Linux machine anyway, and
+> `make_simulations.yml` is pinned to Python 3.6 for `simfish`.
+
 ### Option 2 — Docker
 
-A Docker container is also available if you prefer a fully isolated setup:
+A prebuilt Docker image gives a fully isolated setup and needs no conda solve at all. It
+contains the **data-processing** environment (`pyxel_env`) plus the pipeline code and the
+trained model, which is what you need to turn raw Xenium/MERFISH data into SubCellSpace
+embeddings.
 
 ```bash
-docker pull woutdavid/subcellspace_jupyter_env
-docker run -it --rm -p 8888:8888 -v $(pwd):/workspace woutdavid/subcellspace_jupyter_env
+docker pull woutdavid/subcellspace:latest
+docker run -it --rm -p 8888:8888 -v /path/to/your/data:/data woutdavid/subcellspace:latest
 ```
 
-Then open the URL printed in the terminal (e.g. `http://127.0.0.1:8888/?token=...`) in your browser.
+Then open the URL printed in the terminal (e.g. `http://127.0.0.1:8888/?token=...`) in your
+browser. Your data is mounted at `/data`; the pipeline code and the trained model live in
+`/opt/subcellspace`.
+
+Available tags on [Docker Hub](https://hub.docker.com/r/woutdavid/subcellspace):
+
+| Tag | Download | Contents |
+|-----|----------|----------|
+| `latest`, `cpu` | ~1.1 GB | CPU-only PyTorch. Recommended, and the right choice on macOS/Windows. |
+| `cuda` | ~2.7 GB | CUDA-enabled PyTorch, for GPU hosts. Run with `--gpus all`. |
+| `1.0-cpu`, `1.0-cuda` | — | Immutable version tags; use these if you need a fixed reference. |
+
+```bash
+# on a CUDA host, for GPU-accelerated segmentation
+docker run -it --rm --gpus all -p 8888:8888 -v /path/to/your/data:/data woutdavid/subcellspace:cuda
+```
+
+> **Apple Silicon / ARM.** These images are built for `linux/amd64` only, so on an M-series
+> Mac they run under emulation — functional, but segmentation is slow. Add
+> `--platform linux/amd64` to silence the platform-mismatch warning. For native performance on
+> ARM, use the conda route above instead ([`pyxel_env_crossplatform.yml`](./yamls/pyxel_env_crossplatform.yml)
+> installs a native arm64 build).
+
+To build the image yourself instead of pulling — for example after modifying the pipeline —
+run from the repository root:
+
+```bash
+docker build --build-arg TORCH_VARIANT=cpu -t subcellspace:cpu .   # ~3.5 GB on disk
+docker build -t subcellspace:cuda .                                # ~6.1 GB on disk
+```
 
 
 ---

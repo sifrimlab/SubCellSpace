@@ -29,7 +29,7 @@ def cut_bboxes_from_center(measured_df: pd.DataFrame, dapi_image: np.ndarray, la
                                                                                                                                                                    
         X = row.center_col
         Y = row.center_row                                                                                                                                           
-        bb = getPatch(image, (Y,X), radius = (expand,expand), fill=0)                                                                                                      
+        bb = getPatch(dapi_image, (Y,X), radius = (expand,expand), fill=0)                                                                                                      
         io.imsave(f"{image_prefix}dapi_cellID{row.image_label}.tif", bb)
 
         labeled_bb = getPatch(labeled_image, (Y,X), radius = (expand,expand), fill=0)
@@ -47,9 +47,11 @@ def cut_bbox_cells_based_on_dual_channel_segmentation(measured_df: pd.DataFrame,
     cell_mask_out_dir = out_dir / "single_cell_masks/"
     dapi_mask_out_dir = out_dir / "single_dapi_masks/"
     single_cell_detected_transcripts_out_dir =  out_dir / "detected_transcripts"
+    single_GE_labeled_out_dir = out_dir / "single_GE_labeled"
     cell_mask_out_dir.mkdir(exist_ok=True)
     dapi_mask_out_dir.mkdir(exist_ok=True)
     single_cell_detected_transcripts_out_dir.mkdir(exist_ok=True)
+    single_GE_labeled_out_dir.mkdir(exist_ok=True)
 
     if origin_image is not None:
         origin_image_out_dir =  out_dir / "actual_images/"

@@ -7,6 +7,11 @@ from math import comb
 from scipy.stats import ks_2samp
 from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor, as_completed
 
+if __package__:
+    from .dataprep import initialize_adata, create_simulated_gene
+else:  # when run as a script from inside src/
+    from dataprep import initialize_adata, create_simulated_gene
+
 def compute_power_rf(params, rf_singlejob, adata_test, adata_control):
     """
     Function to compute the power of the RF classifier for a given parameter combination.
@@ -15,6 +20,8 @@ def compute_power_rf(params, rf_singlejob, adata_test, adata_control):
     params: tuple of pattern strength, RNA count, cell count
     rf_singlejob: RF classifier object. Should be created as a single job object.
     adata_test: AnnData object containing the test dataset.
+    adata_control: AnnData object containing the matched (shuffled) control dataset,
+                   indexed identically to adata_test.
     
     output:
     result, bonferroni_result: tuple of parameter combination and power, tuple of parameter combination and Bonferroni corrected power
@@ -28,7 +35,7 @@ def compute_power_rf(params, rf_singlejob, adata_test, adata_control):
         for i in range(1000):
             # sample new gene. No random seed so that every time a different "gene" is sampled.
             pattern = create_simulated_gene(adata_test, mixed_patterns = True, pattern_strength= strength, rna_count = rna_count, sample_size = cell_count)
-            control = adata_test_shuffled[pattern.obs.index]
+            control = adata_control[pattern.obs.index]
             # control = create_simulated_gene(adata_test, pattern = 'random', mixed_patterns = False, rna_count = rna_count, sample_size = cell_count)
 
             # Calculate RF classification probabilities
@@ -61,9 +68,7 @@ def compute_power_rf(params, rf_singlejob, adata_test, adata_control):
             raise e
 
 if __name__ == '__main__':
-    from dataprep import initialize_adata, create_simulated_gene
     import pandas as pd
-    import pickle
     """ Main function to run the power analysis for the permutation test, currently set up for the latent space method (i.e. Chamfer distance).
     If you want to run the RF method, load the RF classifier object here, which should be trained as a single job object as we multiprocess the power analysis.
     

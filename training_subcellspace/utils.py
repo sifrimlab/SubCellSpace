@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+import anndata as ad
 import matplotlib.pyplot as plt
 from pathlib import Path
 # import seaborn as sns
@@ -538,7 +539,7 @@ def turn_im_dataset_into_adata(im_dataset, latent):
         adata.obs["corresponding_cells"] = corresponding_cells
 
         corresponding_cell_images = np.array([io.imread(file) for file in adata.obs["corresponding_cells"]])
-        adata.obsm["corresponding_cell_images"] = corresponding_cells_images
+        adata.obsm["corresponding_cell_images"] = corresponding_cell_images
 
      # Get paths to input data as well
     adata.obs["original_image_paths"] = im_dataset.image_list

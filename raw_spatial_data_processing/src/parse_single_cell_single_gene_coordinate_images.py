@@ -14,6 +14,7 @@ import matplotlib.pyplot as plt
 from skimage.filters import gaussian
 from skimage.draw import disk, rectangle
 from skimage.transform import rotate, resize, warp
+import SimpleITK as sitk
 from .subcellspace_utils import create_subcell_representation
 
 
@@ -215,8 +216,8 @@ def flip_point(point, shape):
         new_point = (new_row, new_col)
     return new_point
 
-def sitkTransformPoint(point, sitk_transform):
-    """sitkTransformPoint.
+def sitk_transform_point(point, sitk_transform):
+    """sitk_transform_point.
     -   sitk.transform.TransformPoint assumes (col, row) under the hood, so we invert them beforehand and invert them back after transform
     Parameters
     ----------
@@ -244,7 +245,7 @@ def calc_kwargs(input_shape, target_shape, rotation_angle, first_resize_step = T
         kwargs.append({"zoom_factors": first_zoom_factors})
         
     if rotation_angle is not None:
-        translation, shape_after_rotation = calculateRotate_translation(target_shape, rotation_angle)
+        translation, shape_after_rotation = calculate_rotate_translation(target_shape, rotation_angle)
         center = find_center(shape_after_rotation)
         kwargs.append({"rotation": {"angle" : rotation_angle, "center": center, "translation": translation}})
 

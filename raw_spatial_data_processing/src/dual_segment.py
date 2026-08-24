@@ -1,6 +1,8 @@
 import re
 import time
 import torch
+from glob import glob
+import matplotlib.pyplot as plt
 from skimage import io
 from skimage.exposure import match_histograms
 from skimage.segmentation import mark_boundaries
@@ -92,7 +94,7 @@ def combine_cell_and_dapi_info(cellbound_labeled, dapi_labeled, grid, tile_nr, k
     dapi_measured["cell_label"] = dapi_measured['cell_label'] + ("_corrID_" + dapi_measured['corresponding_cell'].astype(str))
 
     # Now also add global coordinates of all centers, cause now we're working on a tile basis
-    dapi_measured = addRealCoordinatesToMeasuredDf(dapi_measured, grid, tile_nr)
+    dapi_measured = add_real_coordinates_to_measured_df(dapi_measured, grid, tile_nr)
     return dapi_measured
 
 def concat_measured_dfs(glob_pattern):

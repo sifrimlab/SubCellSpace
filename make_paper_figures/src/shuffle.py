@@ -1,8 +1,13 @@
-from adata_utils import convertRecordToDf
+if __package__:
+    from .adata_utils import convertRecordToDf
+else:  # when run as a script from inside src/
+    from adata_utils import convertRecordToDf
 from skimage.filters import gaussian
 from tqdm import tqdm
+import awkward as ak
 import pandas as pd
 import numpy as np
+import torch
 
 def shuffleGenesInCell(cell_adata_row, default_transcript_columns = []):
     transcripts = convertRecordToDf(cell_adata_row.obsm["detected_transcripts"][0])
@@ -46,7 +51,7 @@ def add_shuffled_embedding(single_cell_adata, model):
         dapi = single_cell_row.obsm["dapi_mask"][0].reshape((100,100))
         cell = single_cell_row.obsm["cell_mask"][0].reshape((100,100))
         
-        points = converRecordToDf(single_cell_row.obsm["detected_transcripts"][0])
+        points = convertRecordToDf(single_cell_row.obsm["detected_transcripts"][0])
         new_subcell_embedding_row = np.zeros((1, len(single_cell_row.var_names), 15))
         
         points_by_gene = dict(tuple(points.groupby("gene")))
@@ -77,7 +82,7 @@ def add_shuffled_embedding(single_cell_adata, model):
 
     new_embedding_layer = np.zeros((len(single_cell_adata), len(single_cell_adata.var_names), 15))
     for i, tmp_row in tqdm(enumerate(single_cell_adata), total = len(single_cell_adata), desc = "Making new shuffled subcell embeddings"):
-        new_subcell_embedding_row = create_new_input_row(tmp_row)
+        new_subcell_embedding_row = create_new_input_row(tmp_row, model)
         new_embedding_layer[i, :, :] = new_subcell_embedding_row
     single_cell_adata.layers["random_subcell_embedding"] = new_embedding_layer
     return single_cell_adata

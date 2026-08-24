@@ -1,6 +1,9 @@
 from pathlib import Path
 import matplotlib.pyplot as plt
-from adata_utils import convertRecordToDf
+if __package__:
+    from .adata_utils import convertRecordToDf
+else:  # when run as a script from inside src/
+    from adata_utils import convertRecordToDf
 
 PATTERN_NAMES = ["spatial","random", "intranuclear", "nuclear-edge", "extranuclear", "foci", "protrusion", "cell-edge", "perinuclear", "pericellular","pattern"]
 
@@ -25,10 +28,10 @@ def get_pattern_palette():
         ##RGB color; the keyword argument name must be a standard mpl colormap name.
         return plt.cm.get_cmap(name, n)
 
-    global_cmap = get_cmap(len(tmp_patterns))
+    global_cmap = get_cmap(len(PATTERN_NAMES))
     # cmap = get_cmap(len(adata.obs["pattern"].unique()), name="tab10")
     palette = {}
-    for i, el in enumerate(tmp_patterns):
+    for i, el in enumerate(PATTERN_NAMES):
         palette[el] =  global_cmap(i)
     return palette
 

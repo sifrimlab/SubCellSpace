@@ -1,4 +1,6 @@
+import numpy as np
 import pandas as pd
+from typing import Tuple
 from pyxelperfect.measure import measureLabeledImage
 
 

@@ -49,7 +49,7 @@ def plotFullDataPoint(adata, tile_nr = None, cell_id = None, gene = None, ax = N
     cell_mask_for_this_cell = (adata_for_this_cell_gene.obsm["cell_mask"][0].reshape(100,100) > 0) * 2
     dapi_mask_for_this_cell = adata_for_this_cell_gene.obsm["dapi_mask"][0].reshape(100,100) > 0
     
-    tile_nr = str(adata_for_this_cell_gene.obs["tile_nr"][0])
+    tile_nr = str(adata_for_this_cell_gene.obs["tile_nr"].iloc[0])
     measured_df_for_this_tile = adata_for_this_cell_gene.uns["measured_df"][tile_nr]
     detected_transcripts_for_this_cell = convertRecordToDf(adata_for_this_cell_gene.obsm["detected_transcripts"][0])
     

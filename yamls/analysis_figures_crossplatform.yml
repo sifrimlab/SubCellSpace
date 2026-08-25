@@ -54,6 +54,10 @@ dependencies:
 
       # --- plotting ---
       - matplotlib==3.6.3
+      # Must be pinned: 0.2.x calls matplotlib.rcParams._get(), which only exists
+      # from matplotlib 3.7. Unpinned, pip takes the latest and every plot in
+      # Jupyter raises AttributeError while the install itself looks fine.
+      - matplotlib-inline==0.1.6
       - seaborn==0.12.2
 
       # --- single-cell / spatial ---

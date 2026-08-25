@@ -68,6 +68,8 @@ dependencies:
       - tqdm==4.66.4
       - joblib==1.4.2
       - tabulate==0.9.0
+      - pyyaml==6.0.1            # the pipeline is driven by a YAML config
+      - psutil==5.9.8            # optional: only for profile_resources: true
 
       # --- this project's image helpers (installed WITHOUT the [tensor] extra) ---
       - pyxelperfect==0.1.10

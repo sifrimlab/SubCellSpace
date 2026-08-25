@@ -1,41 +1,40 @@
 # SubCellSpace — spatial data processing environment.
 #
-# Builds the cross-platform pyxel environment (yamls/pyxel_env_crossplatform.yml) so the
-# raw Xenium/MERFISH processing pipeline can be run without solving any conda environment
-# locally. Using the YAML here rather than a bare pip install is deliberate: it means this
-# image also serves as a build-time check that the published environment file resolves.
+# This image ships the ENVIRONMENT ONLY (yamls/pyxel_env_crossplatform.yml); the pipeline
+# code and the trained model come from the repository you mount at run time. That keeps the
+# image from going stale every time the code changes — it only needs rebuilding when a
+# dependency moves. Building from the YAML is also deliberate: it makes the image a
+# build-time check that the published environment file actually resolves.
 #
-# Prebuilt images are published at https://hub.docker.com/r/woutdavid/subcellspace
-# (tags: latest / cpu / cuda, plus immutable 1.0-cpu and 1.0-cuda), so most users do not
-# need to build this at all:
-#   docker run -it --rm -p 8888:8888 -v /path/to/your/data:/data woutdavid/subcellspace:latest
+# Prebuilt images: https://hub.docker.com/r/woutdavid/subcellspace
 #
-# Build:
-#   docker build -t woutdavid/subcellspace:cuda .
-#
-# Run (mount the data you want to process):
+# Run — mount the repo (which carries the code and the trained model) and your data:
 #   docker run -it --rm -p 8888:8888 \
+#       -v $(pwd):/workspace \
 #       -v /path/to/your/data:/data \
 #       woutdavid/subcellspace:latest
 #   ...then open the http://127.0.0.1:8888/?token=... URL printed in the terminal.
+#
+# Run the pipeline inside the container (from /workspace, which is the repo root):
+#   docker run -it --rm -v $(pwd):/workspace -v /path/to/your/data:/data \
+#       woutdavid/subcellspace:latest \
+#       python -m raw_spatial_data_processing.run raw_spatial_data_processing/configs/mine.yaml
+#
+# Build:
+#   docker build -t woutdavid/subcellspace:cuda .                          # GPU-capable
+#   docker build --build-arg TORCH_VARIANT=cpu -t woutdavid/subcellspace:cpu .   # ~3.2 GB smaller
 #
 # Push (`latest` should point at the CPU build — see the README tag table):
 #   docker login
 #   docker tag subcellspace:cpu woutdavid/subcellspace:latest
 #   docker push woutdavid/subcellspace:latest
 #
-# Build a smaller CPU-only image (~3.2 GB less, no CUDA runtime) — recommended for
-# reviewers and for anyone running the image on macOS/Windows, where the bundled CUDA
-# wheels are dead weight:
-#   docker build --build-arg TORCH_VARIANT=cpu -t <dockerhub-user>/subcellspace:cpu .
-#
 # Notes
-#   * By default pip installs the CUDA-enabled torch wheels, so `gpu=True` in the
-#     segmentation calls works when the container is started with `--gpus all`.
-#     Without a GPU everything still runs on CPU (set gpu=False), just slower.
-#   * classifiers/ (2.1 GB of pickled random forests) is excluded via .dockerignore.
-#     Those are only needed for the paper-figure notebooks, not for processing; mount
-#     them with `-v $(pwd)/classifiers:/opt/subcellspace/classifiers` if you need them.
+#   * By default pip installs the CUDA-enabled torch wheels, so GPU segmentation works when
+#     the container is started with `--gpus all`. Without a GPU everything still runs on CPU
+#     (set gpu=False / use a CPU-only image), just slower.
+#   * Because no code is baked in, nothing needs excluding from the build context beyond the
+#     conda YAML — see .dockerignore.
 FROM continuumio/miniconda3:24.9.2-0
 
 LABEL org.opencontainers.image.title="SubCellSpace processing environment" \
@@ -86,13 +85,14 @@ ENV PATH=/opt/conda/envs/pyxel_env/bin:$PATH \
     CONDA_DEFAULT_ENV=pyxel_env \
     PYTHONDONTWRITEBYTECODE=1
 
-# The pipeline code and the trained model.
-COPY . /opt/subcellspace
-ENV PYTHONPATH=/opt/subcellspace
+# No code is copied in: mount the repository at /workspace instead. PYTHONPATH points
+# there so `raw_spatial_data_processing` and the top-level `CVAE` module (needed to
+# unpickle the trained model) are importable from any working directory.
+ENV PYTHONPATH=/workspace
 
-WORKDIR /data
+WORKDIR /workspace
 EXPOSE 8888
 
 # Token stays enabled; copy the printed URL from the container logs.
 CMD ["jupyter", "lab", "--ip=0.0.0.0", "--port=8888", "--no-browser", \
-     "--allow-root", "--ServerApp.root_dir=/", "--ServerApp.preferred_dir=/opt/subcellspace"]
+     "--allow-root", "--ServerApp.root_dir=/", "--ServerApp.preferred_dir=/workspace"]

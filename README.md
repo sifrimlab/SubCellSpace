@@ -33,7 +33,7 @@ Each module ships with its own dedicated conda environment (see [`yamls/`](./yam
 |--------|-------------|
 | [`training_subcellspace/`](./training_subcellspace/) | Build training data and train the SubCellSpace model |
 | [`make_paper_figures/`](./make_paper_figures/) | Reproduce all manuscript analyses and figures |
-| [`raw_spatial_data_processing/`](./raw_spatial_data_processing/) | Process your own dataset into a SubCellSpace-ready AnnData object |
+| [`raw_spatial_data_processing/`](./raw_spatial_data_processing/) | Config-driven pipeline turning raw Xenium/MERFISH output into a SubCellSpace-ready AnnData object |
 
 
 
@@ -74,9 +74,9 @@ Each subfolder contains a dedicated `README` with step-by-step instructions.
 > The `*_crossplatform.yml` files pin the same tested package versions but without build
 > strings and without the platform-specific CUDA extras, so pip selects an appropriate build
 > per OS. On Linux they still install the CUDA-enabled `torch`; on macOS/Windows they install
-> the CPU build, in which case pass `gpu=False` to the segmentation steps in
-> `raw_spatial_data_processing`. Both files were verified by resolving their full dependency
-> tree against linux-x86_64, macOS-arm64, macOS-x86_64 and win-amd64.
+> the CPU build. The processing pipeline detects that automatically and runs segmentation on
+> CPU (set `use_gpu` in the config to override). Both files were verified by resolving their
+> full dependency tree against linux-x86_64, macOS-arm64, macOS-x86_64 and win-amd64.
 >
 > `analysis_figures_crossplatform.yml` keeps every package version from the original except
 > three, each documented in the file header: Python moves 3.8 → 3.9 (3.8 is end-of-life),
@@ -96,12 +96,24 @@ embeddings.
 
 ```bash
 docker pull woutdavid/subcellspace:latest
-docker run -it --rm -p 8888:8888 -v /path/to/your/data:/data woutdavid/subcellspace:latest
+docker run -it --rm -p 8888:8888 \
+    -v $(pwd):/workspace \
+    -v /path/to/your/data:/data \
+    woutdavid/subcellspace:latest
 ```
 
 Then open the URL printed in the terminal (e.g. `http://127.0.0.1:8888/?token=...`) in your
-browser. Your data is mounted at `/data`; the pipeline code and the trained model live in
-`/opt/subcellspace`.
+browser. The image ships the **environment only** — mount this repository at `/workspace`
+(that is where the pipeline code and the trained model come from) and your data at `/data`.
+Because no code is baked in, the image does not go stale when the code changes.
+
+To run the pipeline directly instead of opening a notebook:
+
+```bash
+docker run -it --rm -v $(pwd):/workspace -v /path/to/your/data:/data \
+    woutdavid/subcellspace:latest \
+    python -m raw_spatial_data_processing.run raw_spatial_data_processing/configs/mine.yaml
+```
 
 Available tags on [Docker Hub](https://hub.docker.com/r/woutdavid/subcellspace):
 
@@ -109,11 +121,17 @@ Available tags on [Docker Hub](https://hub.docker.com/r/woutdavid/subcellspace):
 |-----|----------|----------|
 | `latest`, `cpu` | ~1.1 GB | CPU-only PyTorch. Recommended, and the right choice on macOS/Windows. |
 | `cuda` | ~2.7 GB | CUDA-enabled PyTorch, for GPU hosts. Run with `--gpus all`. |
-| `1.0-cpu`, `1.0-cuda` | — | Immutable version tags; use these if you need a fixed reference. |
+| `1.0-cpu`, `1.0-cuda` | — | Immutable tags matching the `v1.0-paper` git tag. These bake the pipeline code in, as that is how the image was built at the time. |
+
+> **Note.** The `1.0-*` images contain the pipeline code of the `v1.0-paper` tag baked in.
+> From `1.1` onward the images ship the environment only and take the code from the repository
+> you mount, so re-pull `latest` after updating this repo rather than relying on a pinned
+> older tag for current code.
 
 ```bash
 # on a CUDA host, for GPU-accelerated segmentation
-docker run -it --rm --gpus all -p 8888:8888 -v /path/to/your/data:/data woutdavid/subcellspace:cuda
+docker run -it --rm --gpus all -p 8888:8888 \
+    -v $(pwd):/workspace -v /path/to/your/data:/data woutdavid/subcellspace:cuda
 ```
 
 > **Apple Silicon / ARM.** These images are built for `linux/amd64` only, so on an M-series
@@ -137,8 +155,11 @@ docker build -t subcellspace:cuda .                                # ~6.1 GB on 
 
 Once your environment is set up, this is all you need:
 
-1. Process your dataset using [`raw_spatial_data_processing/`](./raw_spatial_data_processing/)
-2. Follow the example notebook: [`example_usage_of_SubCellSpace_on_your_data.ipynb`](./example_usage_of_SubCellSpace_on_your_data.ipynb)
+1. Process your dataset with [`raw_spatial_data_processing/`](./raw_spatial_data_processing/) —
+   walked through step by step in
+   [`tutorial_creating_adata_subcell.ipynb`](./tutorial_creating_adata_subcell.ipynb)
+2. Analyse the result following
+   [`example_usage_of_SubCellSpace_on_your_data.ipynb`](./example_usage_of_SubCellSpace_on_your_data.ipynb)
 
 No need to retrain the model or reproduce the paper figures.
 

@@ -54,7 +54,7 @@ def compute_silhouette_per_label(adata, obs_key="pattern", use_rep="X_umap"):
     X = adata.obsm[use_rep][keep]
     labels = labels[keep].astype(str).values
 
-    scores = silhouette_samples(X, labels, n_jobs=-1)
+    scores = silhouette_samples(X, labels)
     per_label = pd.Series(scores).groupby(labels).mean()
     return scores.mean(), per_label.to_dict()
 

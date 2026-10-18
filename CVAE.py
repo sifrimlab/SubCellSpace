@@ -274,14 +274,21 @@ class CVAE_hard_coded(nn.Module):
             del batch
             torch.cuda.empty_cache()
             self.eval()
-            for val_batch, val_label, binary_val_label in val_loader:
-                val_batch = val_batch.to(args["device"])
-                val_label = val_label.to(args["device"])
+            # No gradients are needed here: nothing backprops this loss, it only
+            # gets .item()'d into the history. Without no_grad every validation
+            # batch retains a full autograd graph -- survivable for the conv
+            # encoder, but a ViT-B/16 encoder at batch 512 retains 36.8 GB and
+            # OOMs a 44 GB card. The loss is unchanged: no_grad only stops the
+            # graph being built.
+            with torch.no_grad():
+                for val_batch, val_label, binary_val_label in val_loader:
+                    val_batch = val_batch.to(args["device"])
+                    val_label = val_label.to(args["device"])
 
-                reconstruction, mu, logvar = self.forward(val_batch)
+                    reconstruction, mu, logvar = self.forward(val_batch)
 
-                val_loss = F.mse_loss(val_batch, reconstruction, reduction=args["reduction"])
-                total_val_loss += val_loss.item()
+                    val_loss = F.mse_loss(val_batch, reconstruction, reduction=args["reduction"])
+                    total_val_loss += val_loss.item()
 
 
 
@@ -359,12 +366,19 @@ class CVAE_hard_coded(nn.Module):
             del batch
             torch.cuda.empty_cache()
             self.eval()
-            for val_batch in val_loader:
-                val_batch = val_batch.to(args["device"])
-                reconstruction, mu, logvar = self.forward(val_batch)
+            # No gradients are needed here: nothing backprops this loss, it only
+            # gets .item()'d into the history. Without no_grad every validation
+            # batch retains a full autograd graph -- survivable for the conv
+            # encoder, but a ViT-B/16 encoder at batch 512 retains 36.8 GB and
+            # OOMs a 44 GB card. The loss is unchanged: no_grad only stops the
+            # graph being built.
+            with torch.no_grad():
+                for val_batch in val_loader:
+                    val_batch = val_batch.to(args["device"])
+                    reconstruction, mu, logvar = self.forward(val_batch)
 
-                val_loss = F.mse_loss(val_batch, reconstruction, reduction=args["reduction"])
-                total_val_loss += val_loss.item()
+                    val_loss = F.mse_loss(val_batch, reconstruction, reduction=args["reduction"])
+                    total_val_loss += val_loss.item()
 
 
 

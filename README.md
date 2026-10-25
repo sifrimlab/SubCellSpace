@@ -33,6 +33,8 @@ Each module ships with its own dedicated conda environment (see [`yamls/`](./yam
 |--------|-------------|
 | [`training_subcellspace/`](./training_subcellspace/) | Build training data and train the SubCellSpace model |
 | [`make_paper_figures/`](./make_paper_figures/) | Reproduce all manuscript analyses and figures |
+| [`benchmark/`](./benchmark/) | Benchmark of SubCellSpace against Bento, ELLA and alternative encoders (Supp. Fig. 10) |
+| [`additional_analyses/`](./additional_analyses/) | Supplementary analyses: reconstruction error, recall, rotation, cell-boundary patterns, composite patterns, cell-mask input, input resolution |
 | [`raw_spatial_data_processing/`](./raw_spatial_data_processing/) | Config-driven pipeline turning raw Xenium/MERFISH output into a SubCellSpace-ready AnnData object |
 
 
@@ -90,9 +92,9 @@ Each subfolder contains a dedicated `README` with step-by-step instructions.
 ### Option 2 — Docker
 
 A prebuilt Docker image gives a fully isolated setup and needs no conda solve at all. It
-contains the **data-processing** environment (`pyxel_env`) plus the pipeline code and the
-trained model, which is what you need to turn raw Xenium/MERFISH data into SubCellSpace
-embeddings.
+contains the **data-processing** environment (`pyxel_env`), which is what you need to turn
+raw Xenium/MERFISH data into SubCellSpace embeddings. The figures and the additional analyses
+use the conda environments above.
 
 ```bash
 docker pull woutdavid/subcellspace:latest
@@ -121,6 +123,9 @@ Available tags on [Docker Hub](https://hub.docker.com/r/woutdavid/subcellspace):
 |-----|----------|----------|
 | `latest`, `cpu` | ~1.1 GB | CPU-only PyTorch. Recommended, and the right choice on macOS/Windows. |
 | `cuda` | ~2.7 GB | CUDA-enabled PyTorch, for GPU hosts. Run with `--gpus all`. |
+| `analysis-cpu` | ~0.8 GB | The **analysis** environment (figures and additional analyses, see below), CPU-only PyTorch. |
+| `analysis-cuda` | ~2.4 GB | The analysis environment with CUDA-enabled PyTorch. Run with `--gpus all`. |
+| `1.1-cpu`, `1.1-cuda`, `1.1-analysis-cpu`, `1.1-analysis-cuda` | — | Immutable tags for the images above. |
 | `1.0-cpu`, `1.0-cuda` | — | Immutable tags matching the `v1.0-paper` git tag. These bake the pipeline code in, as that is how the image was built at the time. |
 
 > **Note.** The `1.0-*` images contain the pipeline code of the `v1.0-paper` tag baked in.
@@ -147,6 +152,35 @@ run from the repository root:
 docker build --build-arg TORCH_VARIANT=cpu -t subcellspace:cpu .   # ~3.5 GB on disk
 docker build -t subcellspace:cuda .                                # ~6.1 GB on disk
 ```
+
+#### Analysis image: the figures and the additional analyses
+
+A second image, [`yamls/Dockerfile`](./yamls/Dockerfile), contains the analysis environment
+(`subcellspace_env`, from [`analysis_figures_crossplatform.yml`](./yamls/analysis_figures_crossplatform.yml))
+for [`make_paper_figures/`](./make_paper_figures/) and [`additional_analyses/`](./additional_analyses/).
+Like the processing image it ships the environment only. Pull it, mount the repository and
+your data, and open the URL printed in the terminal:
+
+```bash
+docker pull woutdavid/subcellspace:analysis-cpu
+docker run -it --rm -p 8888:8888 \
+    -v $(pwd):/workspace \
+    -v /path/to/your/data:/data \
+    woutdavid/subcellspace:analysis-cpu
+```
+
+Use `analysis-cuda` with `--gpus all` on a GPU host. To build the image yourself instead, run
+from the repository root:
+
+```bash
+docker build -f yamls/Dockerfile --build-arg TORCH_VARIANT=cpu -t subcellspace:analysis-cpu .   # ~2.4 GB on disk
+docker build -f yamls/Dockerfile -t subcellspace:analysis-cuda .                                # ~5.0 GB on disk
+```
+
+The additional analyses read their inputs from `/data/additional_analysis` by default. Two
+things are not covered by this image: Fig. 1B needs the simulation environment
+([`make_simulations.yml`](./yamls/make_simulations.yml)), and the benchmark uses its own
+environment ([`benchmark/envs/benchmark.yml`](./benchmark/envs/benchmark.yml)).
 
 
 ---

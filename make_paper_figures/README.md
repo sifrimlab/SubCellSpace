@@ -20,6 +20,11 @@ conda activate subcellspace_env
 
 All notebooks work standalone, the only thing necessary besides a notebook and the *conda_env* is processed data, which can be found on [https://zenodo.org/records/19708995](19708995).   
 
+> **One exception: Fig. 1B.** The cell under "Figure 1B" in `fig2_technical_aspects_of_subcellspace.ipynb`
+> simulates its example patterns live with `simfish`, which needs the simulation environment
+> ([`make_simulations.yml`](../yamls/make_simulations.yml), Linux only, Python 3.6). Every other cell runs in
+> `subcellspace_env`.
+
 If wanting to make use of the interactive features of SubCellSpace (e.g.: clicking on observations in the latent space and plotting them, drawing your own patterns...), jupyter nbclassic is prefered. Technically modern jupyterlab interactive modes should work, but I've had bad experiences with them.
 
 

@@ -1,4 +1,3 @@
-import ot
 import pandas as pd
 from pathlib import Path
 import matplotlib.pyplot as plt
@@ -16,6 +15,9 @@ import seaborn as sns
 seed = 101
 
 distance_threshold_1000obs_new_classifier_custom_random = 0.06
+
+# Minimum observations per gene for the KS test: 80% power at typical transcript counts
+min_observations_per_gene = 11
 
 colorblind_palette = sns.color_palette("colorblind")
 

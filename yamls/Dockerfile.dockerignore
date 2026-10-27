@@ -1,0 +1,4 @@
+# Build context for yamls/Dockerfile (the analysis image). Like the processing image it ships
+# the environment only, so the context needs nothing but the environment file.
+*
+!yamls/analysis_figures_crossplatform.yml

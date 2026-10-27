@@ -1,0 +1,6 @@
+# This image ships the environment only -- the pipeline code and the trained model are
+# mounted at run time (see the Dockerfile header). So the build context needs nothing
+# except yamls/pyxel_env_crossplatform.yml, and excluding the rest keeps the context tiny
+# (the repo carries a 2.1 GB classifiers/ dir and a ~3 GB .git).
+*
+!yamls/pyxel_env_crossplatform.yml

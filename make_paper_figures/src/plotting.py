@@ -1,6 +1,9 @@
 from pathlib import Path
 import matplotlib.pyplot as plt
-from adata_utils import convertRecordToDf
+if __package__:
+    from .adata_utils import convertRecordToDf
+else:  # when run as a script from inside src/
+    from adata_utils import convertRecordToDf
 
 PATTERN_NAMES = ["spatial","random", "intranuclear", "nuclear-edge", "extranuclear", "foci", "protrusion", "cell-edge", "perinuclear", "pericellular","pattern"]
 
@@ -25,10 +28,10 @@ def get_pattern_palette():
         ##RGB color; the keyword argument name must be a standard mpl colormap name.
         return plt.cm.get_cmap(name, n)
 
-    global_cmap = get_cmap(len(tmp_patterns))
+    global_cmap = get_cmap(len(PATTERN_NAMES))
     # cmap = get_cmap(len(adata.obs["pattern"].unique()), name="tab10")
     palette = {}
-    for i, el in enumerate(tmp_patterns):
+    for i, el in enumerate(PATTERN_NAMES):
         palette[el] =  global_cmap(i)
     return palette
 
@@ -46,7 +49,7 @@ def plotFullDataPoint(adata, tile_nr = None, cell_id = None, gene = None, ax = N
     cell_mask_for_this_cell = (adata_for_this_cell_gene.obsm["cell_mask"][0].reshape(100,100) > 0) * 2
     dapi_mask_for_this_cell = adata_for_this_cell_gene.obsm["dapi_mask"][0].reshape(100,100) > 0
     
-    tile_nr = str(adata_for_this_cell_gene.obs["tile_nr"][0])
+    tile_nr = str(adata_for_this_cell_gene.obs["tile_nr"].iloc[0])
     measured_df_for_this_tile = adata_for_this_cell_gene.uns["measured_df"][tile_nr]
     detected_transcripts_for_this_cell = convertRecordToDf(adata_for_this_cell_gene.obsm["detected_transcripts"][0])
     

@@ -1,6 +1,11 @@
 #!/usr/bin/env python
 import os
+import sys
 import time
+
+# needs to happen before importing CVAE, which lives in the repo root
+sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
+
 import torch
 import random
 import argparse
@@ -18,9 +23,8 @@ import torch.nn.functional as F
 from torch.utils.data import DataLoader
 from CVAE import  CVAE_hard_coded #, CVAE
 from torchvision import datasets, transforms
-from utils import ImageDataset, ImageDatasetWithLabels, ImageDatasetWithDapisAndLabels, conv_output_shape#, train_model
+from utils import ImageDataset, ImageDatasetWithDapisAndLabels, conv_output_shape#, train_model
 
-sys.path.append('../') # need to be able to load CVAE.py
 model_path = "../SubCellSpace" # Which model to create the embeddings with
 
 # Hardcode seed
@@ -48,6 +52,7 @@ ap.add_argument('-reduction',type=str, nargs='?', default="sum", help="Reduction
 
 args = ap.parse_args()
 
+train_dataset = '/path/to/output/of/rotationally_augmented_simulations/coordinate_parsed/cellids_left_out/train/*.tif'
 test_dataset = '/path/to/output/of/rotationally_augmented_simulations/coordinate_parsed/cellids_left_out/test/*.tif'
 dapi_dataset = '/path/to/output/of/rotationally_augmented_simulations/coordinate_parsed/dapi_zoomed/*.tif'
 

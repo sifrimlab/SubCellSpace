@@ -1,0 +1,91 @@
+# Cross-platform equivalent of analysis_figures.yml (Linux, macOS incl. Apple Silicon, Windows).
+#
+# analysis_figures.yml is a `conda env export` from a linux-64 + CUDA machine and cannot be
+# solved anywhere else: all 118 of its conda packages carry linux-64 build strings, six are
+# Linux-only (libgcc-ng, libgomp, libstdcxx-ng, ld_impl_linux-64, _libgcc_mutex,
+# _openmp_mutex), and it pins the CUDA 11.6 toolkit from the `pytorch`/`nvidia` channels.
+#
+# This file pins only the packages the figure notebooks and make_paper_figures/src actually
+# import (plus scanpy's and the classic-notebook stack's runtime needs), and lets pip pick a
+# platform-appropriate build. Almost every version is unchanged from analysis_figures.yml,
+# so figure output should be unaffected. The three deliberate changes are:
+#
+#   * python 3.8 -> 3.9. Python 3.8 is end-of-life and many of these projects no longer
+#     publish 3.8 wheels for macOS arm64. torch stays at 1.13.1, which supports 3.9, and the
+#     trained SubCellSpace checkpoint was verified to unpickle correctly under 3.9.
+#   * torch/torchvision come from PyPI instead of the `pytorch` channel (same versions,
+#     1.13.1 / 0.14.1). On Linux pip installs the CUDA build; on macOS/Windows the CPU build.
+#   * faiss-cpu 1.7.0 (conda) -> 1.7.4 (PyPI), because 1.7.0 was never published to PyPI.
+#     It is only used for exact L2 nearest-neighbour matching on spot counts
+#     (IndexFlatL2 in dataprep.match_unique_control_using_faiss), which is deterministic,
+#     so this does not change matching results.
+#
+# umap-learn, pynndescent and session-info are published as source distributions only. They
+# are pure Python, so pip builds them on any platform - no compiler needed.
+#
+# Usage:
+#   conda env create -f analysis_figures_crossplatform.yml
+#   conda activate subcellspace_env
+#
+# For the interactive features (clicking observations in the latent space, drawing patterns),
+# the make_paper_figures README recommends the classic notebook interface, which is why
+# notebook 6.x / nbclassic are pinned here rather than JupyterLab:
+#   jupyter nbclassic
+name: subcellspace_env
+channels:
+  - conda-forge
+dependencies:
+  - python=3.9
+  - pip
+  - pip:
+      # --- core scientific stack ---
+      - numpy==1.23.5
+      - pandas==1.5.3
+      - scipy==1.10.0
+      - scikit-image==0.19.3
+      - scikit-learn==1.2.0
+      - statsmodels==0.13.5
+      - numba==0.56.4
+      - llvmlite==0.39.1
+      - h5py==3.8.0
+      - networkx==3.0
+      - natsort==8.2.0
+      - tqdm==4.64.1
+
+      # --- plotting ---
+      - matplotlib==3.6.3
+      # Must be pinned: 0.2.x calls matplotlib.rcParams._get(), which only exists
+      # from matplotlib 3.7. Unpinned, pip takes the latest and every plot in
+      # Jupyter raises AttributeError while the install itself looks fine.
+      - matplotlib-inline==0.1.6
+      - seaborn==0.12.2
+
+      # --- single-cell / spatial ---
+      - scanpy==1.9.1
+      - anndata==0.9.2
+      - awkward==2.6.6
+      - umap-learn==0.5.3
+      - pynndescent==0.5.8
+      - session-info==1.0.0
+      - igraph==0.10.3          # sc._utils.get_igraph_from_adjacency + community_leiden
+      - leidenalg==0.9.1
+
+      # --- analysis ---
+      - POT==0.9.5              # imported as `ot`, used for the Wasserstein distances
+      - faiss-cpu==1.7.4        # see note above re: 1.7.0
+
+      # --- IO ---
+      - openpyxl==3.1.5         # reading the .xlsx gene lists in info_files/
+      - pyarrow==12.0.1
+
+      # --- model ---
+      - torch==1.13.1
+      - torchvision==0.14.1
+
+      # --- classic notebook stack (needed for the interactive figure features) ---
+      - jupyter==1.0.0
+      - notebook==6.5.2
+      - nbclassic==0.4.8
+      - ipykernel==6.20.2
+      - ipywidgets==8.0.4
+      - widgetsnbextension==4.0.5

@@ -7,7 +7,9 @@ import torch
 def convertRecordToDf(record):
     awkward_list = ak.to_list(record)
     if all([value is None for value in awkward_list.values()]):
-        return pd.DataFrame(columns=list(ak.to_list(single_cell_adata.obsm["detected_transcripts"][x]).keys()))
+        # Empty cell: return an empty frame that still carries the expected columns,
+        # which are the keys of the record itself.
+        return pd.DataFrame(columns=list(awkward_list.keys()))
     else:
         return pd.DataFrame.from_dict(awkward_list)
 

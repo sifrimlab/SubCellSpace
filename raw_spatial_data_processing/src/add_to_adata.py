@@ -10,7 +10,7 @@ from scipy.sparse import bsr_matrix
 import awkward as ak
 
 
-def add_measured_dfs_as_obs_metadata(adata):
+def addMeasuredDfsAsObsMetadata(adata):
     global_rows, global_cols, areas = [],[],[]
     for tmp_row in adata.obs.itertuples():
         tile_nr = tmp_row.tile_nr 
@@ -33,7 +33,7 @@ def add_measured_dfs_as_obs_metadata(adata):
 
 
 
-def add_single_cell_info_to_adata(adata, coordinate_parsed_dir: Path, segmented_prefix):
+def addSingleCellInfoToAdata(adata, coordinate_parsed_dir: Path, segmented_prefix):
     # empty = np.zeros((adata.shape[0], 10000))
     detected_transcripts = []
     empty_dapi = np.zeros((adata.shape[0], 10000))
@@ -87,7 +87,7 @@ def add_single_cell_info_to_adata(adata, coordinate_parsed_dir: Path, segmented_
 
     return adata
 
-def add_subcell_representation_to_adata(adata, coordinate_parsed_dir, segment_prefix, nr_latent_dims = 15):
+def addSubcellRepresentationToAdata(adata, coordinate_parsed_dir, segment_prefix, nr_latent_dims = 15):
     '''
     Note to self: for now it only checks where everything is between 10 and 101
     '''
@@ -131,5 +131,18 @@ def add_subcell_representation_to_adata(adata, coordinate_parsed_dir, segment_pr
     adata.layers["subcell_embedding"] = new_subcell_layer
 
     return adata
+    
+
+if __name__ == '__main__':
+    base_dir =Path( "/mnt/data/MERFISH/coexpression/HumanUterineCancer2/parsed/")
+    adata = ad.read_h5ad(base_dir / "adata_finished.h5ad")
+    coordinate_parsed_dir = base_dir / "coordinate_parsed"
+    segmented_prefix = "dapi-cellbound2-cellbound3"
+    adata = addSubcellRepresentationToAdata(adata, coordinate_parsed_dir, segmented_prefix)
+    adata.write_h5ad(base_dir / "adata_subcell.h5ad", compression="gzip")
+
+    # adata = ad.read_h5ad("/mnt/data/syno_voet_backup/Xenium/20240621__140045__20240621_XSP_RUN1_GMC9UE/output-XETG00334__0029275__A549__20240621__140056/parsed/adata_finished.h5ad")
+    # adata = addMeasuredDfsAsObsMetadata(adata)
+    # adata.write_h5ad("/mnt/data/syno_voet_backup/Xenium/20240621__140045__20240621_XSP_RUN1_GMC9UE/output-XETG00334__0029275__A549__20240621__140056/parsed/adata_finished.h5ad")
     
 
